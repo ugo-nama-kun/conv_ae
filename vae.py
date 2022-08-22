@@ -46,18 +46,21 @@ class Encoder(nn.Module):
 		super(Encoder, self).__init__()
 
 		self.cnn = nn.Sequential(
-			nn.Conv2d(3, 8, 3, stride=2, padding=1),
+			nn.Conv2d(3, 128, 3, stride=2, padding=1),
+			nn.BatchNorm2d(128),
 			nn.ELU(True),
-			nn.Conv2d(8, 16, 3, stride=2, padding=1),
+			nn.Conv2d(128, 256, 3, stride=2, padding=1),
+			nn.BatchNorm2d(256),
 			nn.ELU(True),
-			nn.Conv2d(16, 32, 3, stride=2, padding=0),
+			nn.Conv2d(256, 512, 3, stride=2, padding=0),
+			nn.BatchNorm2d(512),
 			nn.ELU(True),
 		)
 
 		self.flatten = nn.Flatten(start_dim=1)
 
 		self.fc = nn.Sequential(
-			nn.Linear(3 * 3 * 32, 128),
+			nn.Linear(3 * 3 * 512, 128),
 			nn.ELU(True),
 		)
 
@@ -91,19 +94,23 @@ class Decoder(nn.Module):
 
 		self.fc = nn.Sequential(
 			nn.Linear(latent_dim, 128),
+			nn.BatchNorm1d(128),
 			nn.ELU(True),
-			nn.Linear(128, 3 * 3 * 32),
+			nn.Linear(128, 3 * 3 * 512),
+			nn.BatchNorm1d(3 * 3 * 512),
 			nn.ELU(True)
 		)
 
-		self.unflatten = nn.Unflatten(dim=1, unflattened_size=(32, 3, 3))
+		self.unflatten = nn.Unflatten(dim=1, unflattened_size=(512, 3, 3))
 
 		self.deconv = nn.Sequential(
-			nn.ConvTranspose2d(32, 16, 4, stride=2, output_padding=0),
+			nn.ConvTranspose2d(512, 256, 4, stride=2, output_padding=0),
+			nn.BatchNorm2d(256),
 			nn.ELU(True),
-			nn.ConvTranspose2d(16, 8, 3, stride=2, padding=1, output_padding=1),
+			nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, output_padding=1),
+			nn.BatchNorm2d(128),
 			nn.ELU(True),
-			nn.ConvTranspose2d(8, 3, 3, stride=2, padding=1, output_padding=1)
+			nn.ConvTranspose2d(128, 3, 3, stride=2, padding=1, output_padding=1)
 		)
 
 	def forward(self, x):
@@ -134,6 +141,7 @@ lr = 0.001
 
 torch.manual_seed(0)
 
+beta = 0.1  # For beta-VAE
 d = 256
 vae = VariationalAutoEncoder(latent_dim=d).to(device)
 
@@ -151,7 +159,7 @@ def train_epoch(vae, date_loader, optimizer):
 
 		# print(latent.shape, x_recover.shape, image_batch.shape)
 
-		loss = ((x - x_recover)**2).sum() + vae.encoder.kl
+		loss = ((x - x_recover)**2).sum() + beta * vae.kl
 
 		optimizer.zero_grad()
 		loss.backward()
@@ -172,7 +180,7 @@ def test_epoch(vae, data_loader):
 
 			x_recover = vae(x)
 
-			loss = ((x - x_recover)**2).sum() + vae.kl
+			loss = ((x - x_recover)**2).sum() + beta * vae.kl
 			val_loss += loss.item()
 
 	return val_loss / len(data_loader.dataset)
