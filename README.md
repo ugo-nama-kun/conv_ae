@@ -5,7 +5,7 @@ Codes are based on [HERE](https://medium.com/dataseries/convolutional-autoencode
 ### Convolutional Auto Encoder
 ![ae](https://user-images.githubusercontent.com/1684732/185907858-70bd4931-67ca-4d71-a547-17020b0ba073.png)
 
-### [Variational Auto Encoder](https://arxiv.org/abs/1312.6114) ($beta$-VAE)
+### [Variational Auto Encoder](https://arxiv.org/abs/1312.6114) ( $\beta$-VAE)
 ![beta-vae](https://user-images.githubusercontent.com/1684732/185908465-a4f7ce5e-28dd-4663-93e5-ddf1573a7868.png)
 
 ### [WIP] [Regularized Auto Encoder](https://arxiv.org/abs/1903.12436) (RAE)
