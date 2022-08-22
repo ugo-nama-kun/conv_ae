@@ -81,18 +81,18 @@ class Decoder(nn.Module):
 
 		self.fc = nn.Sequential(
 			nn.Linear(latent_dim, 128),
-			nn.ReLU(True),
+			nn.ELU(True),
 			nn.Linear(128, 3 * 3 * 32),
-			nn.ReLU(True)
+			nn.ELU(True)
 		)
 
 		self.unflatten = nn.Unflatten(dim=1, unflattened_size=(32, 3, 3))
 
 		self.deconv = nn.Sequential(
-			nn.ConvTranspose2d(32, 16, 3, stride=2, output_padding=1),
-			nn.ReLU(True),
+			nn.ConvTranspose2d(32, 16, 4, stride=2, output_padding=0),
+			nn.ELU(True),
 			nn.ConvTranspose2d(16, 8, 3, stride=2, padding=1, output_padding=1),
-			nn.ReLU(True),
+			nn.ELU(True),
 			nn.ConvTranspose2d(8, 3, 3, stride=2, padding=1, output_padding=1)
 		)
 
@@ -104,15 +104,19 @@ class Decoder(nn.Module):
 		return x
 
 
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+print("selected device: ", device)
+
 loss_fn = torch.nn.MSELoss()
 
 lr = 0.0003
 
 torch.manual_seed(0)
 
-d = 10
-encoder = Encoder(latent_dim=d)
-decoder = Decoder(latent_dim=d)
+d = 256
+encoder = Encoder(latent_dim=d).to(device)
+decoder = Decoder(latent_dim=d).to(device)
+
 params_to_optimize = [
 	{"params": encoder.parameters()},
 	{"params": decoder.parameters()}
@@ -127,6 +131,8 @@ def train_epoch(encoder, decoder, date_loader, loss_fn, optimizer):
 	train_loss = []
 
 	for image_batch, _ in date_loader:
+		image_batch = image_batch.to(device)
+
 		latent = encoder(image_batch)
 		x_recover = decoder(latent)
 
@@ -152,6 +158,8 @@ def test_epoch(encoder, decoder, data_loader, loss_fn):
 		conc_label = []
 
 		for image_batch, _ in data_loader:
+			image_batch = image_batch.to(device)
+
 			latent = encoder(image_batch)
 			x_recover = decoder(latent)
 
@@ -170,20 +178,19 @@ def plot_ae_outputs(encoder, decoder, n=10):
 	plt.clf()
 	# targets = test_dataset.targets.numpy()
 	# t_idx = {i: np.where(targets == i)[0][0] for i in range(n)}
-	targets = test_dataset.targets
-	t_idx = {i: targets[i] for i in range(n)}
 	for i in range(n):
 		ax = plt.subplot(2, n, i + 1)
-		img = test_dataset[t_idx[i]][0].unsqueeze(0)
+		img = test_dataset[random.randint(0, len(test_dataset))][0].unsqueeze(0).to(device)
 		encoder.eval()
 		decoder.eval()
 
 		with torch.no_grad():
 			rec_img = decoder(encoder(img))
 
-			img = torch.permute(img, (0, 2, 3, 1))
-
-			rec_img = torch.permute(rec_img, (0, 2, 3, 1))
+			# img = torch.permute(img, (0, 2, 3, 1))
+			# rec_img = torch.permute(rec_img, (0, 2, 3, 1))
+			img = img.permute((0, 2, 3, 1))
+			rec_img = rec_img.permute((0, 2, 3, 1))
 
 		plt.imshow(img.cpu().squeeze().numpy())
 		ax.get_xaxis().set_visible(False)
@@ -199,7 +206,7 @@ def plot_ae_outputs(encoder, decoder, n=10):
 	plt.pause(0.0001)
 
 
-num_epoch = 30
+num_epoch = 100
 diz_loss = {"train_loss": [], "val_loss": []}
 plt.figure(figsize=(16, 4.5))
 
