@@ -1,2 +1,13 @@
-# conv_ae
-Convolutional Autoencoder examples
+# Convolutional Autoencoder Examples
+
+Codes are based on [HERE](https://medium.com/dataseries/convolutional-autoencoder-in-pytorch-on-mnist-dataset-d65145c132ac#id_token=eyJhbGciOiJSUzI1NiIsImtpZCI6IjE3MjdiNmI0OTQwMmI5Y2Y5NWJlNGU4ZmQzOGFhN2U3YzExNjQ0YjEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYmYiOjE2NjA4MTQwNDgsImF1ZCI6IjIxNjI5NjAzNTgzNC1rMWs2cWUwNjBzMnRwMmEyamFtNGxqZGNtczAwc3R0Zy5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjExNjI2OTA5NzczNjc2NTU2Mjg1NCIsImVtYWlsIjoieW9zc3kwMTU3QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJhenAiOiIyMTYyOTYwMzU4MzQtazFrNnFlMDYwczJ0cDJhMmphbTRsamRjbXMwMHN0dGcuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJuYW1lIjoiWW9zaGlkYSBOYW90byIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS0vQUZkWnVjcXVDWkZ0LXhEcS1MbU1mX1MwMVEyZU95QXNDeU55VDRhblgyX0g4UT1zOTYtYyIsImdpdmVuX25hbWUiOiJZb3NoaWRhIiwiZmFtaWx5X25hbWUiOiJOYW90byIsImlhdCI6MTY2MDgxNDM0OCwiZXhwIjoxNjYwODE3OTQ4LCJqdGkiOiJkN2VlODkzODc5MTIwOTZlY2ZhYWM5MzA0OGIzMTYxMDk1OTJhODk1In0.pjcoFdVla5gp25nOeB1Wvx4ewa2201ZTgSC1e9mwYzkpttL4mPwrUMCJGpves5FnY5xj5gR97-LZpPOldTj2J1nWfubhG6cvwP0JXi7LrMzkVgylyDCKJM85ru5cBCvLar3bXf5qurkXOVkXT-AmIS9Y3FK53f3QrgwhVemogXrOFBO4S_ZlWfJbnzoy-kIjiJSjleL5lesvTqUjFUcKf6thW_4FtOFZC6WJ8dFJ67ZHnFwUH2QEPUTGIEs7krOtaJ1g51tBvxypJrqqiKNkpozp15_S7quXbdlJ6RiKxMBOf7nnCAOyywth435eUEoG95EIzW5unF6EoSP66MNhFA). I modified the code to treat RGB image (Cifar-10).  
+
+### Convolutional Auto Encoder
+![ae](https://user-images.githubusercontent.com/1684732/185907858-70bd4931-67ca-4d71-a547-17020b0ba073.png)
+
+### [Variational Auto Encoder](https://arxiv.org/abs/1312.6114) ($beta$-VAE)
+![beta-vae](https://user-images.githubusercontent.com/1684732/185908465-a4f7ce5e-28dd-4663-93e5-ddf1573a7868.png)
+
+### [WIP] [Regularized Auto Encoder](https://arxiv.org/abs/1903.12436) (RAE)
+
+![rae](https://user-images.githubusercontent.com/1684732/185908565-0f3e6260-5d4e-4ade-a1d5-a70d375888c7.png)
