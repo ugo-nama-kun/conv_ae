@@ -1,8 +1,6 @@
 import einops
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import random
 import torch
 import torchvision
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
@@ -12,17 +10,20 @@ from torch.utils.data import DataLoader, random_split
 from torch import nn
 
 import torch.nn.functional as F
-import torch.optim as optim
+
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+print("selected device: ", device)
 
 data_dir = "dataset"
 
-train_dataset = torchvision.datasets.MNIST(data_dir, train=True, download=True)
-test_dataset = torchvision.datasets.MNIST(data_dir, train=False, download=True)
-in_channel = 1
+# train_dataset = torchvision.datasets.MNIST(data_dir, train=True, download=True)
+# test_dataset = torchvision.datasets.MNIST(data_dir, train=False, download=True)
+# in_channel = 1
 
-# train_dataset = torchvision.datasets.CIFAR10(data_dir, train=True, download=True)
-# test_dataset = torchvision.datasets.CIFAR10(data_dir, train=False, download=True)
-# in_channel = 3
+
+train_dataset = torchvision.datasets.CIFAR10(data_dir, train=True, download=True)
+test_dataset = torchvision.datasets.CIFAR10(data_dir, train=False, download=True)
+in_channel = 3
 
 # print(test_dataset.targets)
 
@@ -42,7 +43,7 @@ if in_channel == 1:
                                               transforms.RandomResizedCrop(size=32),
                                               transforms.GaussianBlur(kernel_size=9),
                                               transforms.Normalize((0.5,), (0.5,))
-                                             ])
+                                              ])
 else:
     contrast_transforms = transforms.Compose([transforms.RandomHorizontalFlip(),
                                               transforms.RandomResizedCrop(size=32),
@@ -81,45 +82,44 @@ train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size)
 valid_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
 
 visualization_batch_size = 200
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=visualization_batch_size, shuffle=True)
-test_loader = iter(test_loader)
+test_loader = iter(torch.utils.data.DataLoader(test_dataset, batch_size=visualization_batch_size, shuffle=True))
 
 
 class Encoder(nn.Module):
-    
+
     def __init__(self, latent_dim):
         super(Encoder, self).__init__()
-        
+
         self.cnn = nn.Sequential(
-            nn.Conv2d(in_channel, 16, 3, stride=2, padding=1),
-            nn.BatchNorm2d(16),
+            nn.Conv2d(in_channel, 128, 3, stride=2, padding=1),
+            nn.BatchNorm2d(128),
             nn.ELU(True),
-            nn.Conv2d(16, 16, 3, stride=2, padding=1),
-            nn.BatchNorm2d(16),
+            nn.Conv2d(128, 256, 3, stride=2, padding=1),
+            nn.BatchNorm2d(256),
             nn.ELU(True),
-            nn.Conv2d(16, 16, 3, stride=2, padding=0),
-            nn.BatchNorm2d(16),
+            nn.Conv2d(256, 512, 3, stride=2, padding=0),
+            nn.BatchNorm2d(512),
             nn.ELU(True),
         )
-        
+
         self.flatten = nn.Flatten(start_dim=1)
-        
+
         self.fc = nn.Sequential(
-            nn.Linear(3 * 3 * 16, 16),
+            nn.Linear(3 * 3 * 512, 128),
             nn.ELU(True),
-            nn.Linear(16, latent_dim)
+            nn.Linear(128, latent_dim)
         )
-    
+
     def forward(self, x):
         x = self.cnn(x)
         # print("enc: ", x.shape)
         x = self.flatten(x)
         x = self.fc(x)
         return x
-    
+
     def loss_info_nce(self, x_batch, temperature=1.):
         imgs = torch.cat(x_batch, dim=0)
-        
+
         z = self.cnn(imgs)
         z = self.flatten(z)
         z = self.fc(z)
@@ -131,12 +131,9 @@ class Encoder(nn.Module):
         cos_sim = cos_sim / temperature
         nll = -cos_sim[pos_mask] + torch.logsumexp(cos_sim, dim=-1)
         nll = nll.mean()
-        
+
         return nll
 
-
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-print("selected device: ", device)
 
 lr = 0.0003
 
@@ -151,30 +148,32 @@ optimizer = torch.optim.Adam(encoder.parameters(), lr=lr, weight_decay=1e-05)
 def train_epoch(encoder, data_loader, optimizer):
     encoder.train()
     train_loss = []
-    
+
     for image_batch, _ in data_loader:
+        image_batch = [v.to(device) for v in image_batch]
         loss = encoder.loss_info_nce(image_batch)
-        
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        
+
         train_loss.append(loss.item())
-    
+
     return np.mean(train_loss)
 
 
 def test_epoch(encoder, data_loader):
     encoder.eval()
-    
+
     with torch.no_grad():
         losses = []
-        
+
         for image_batch, _ in data_loader:
+            image_batch = [v.to(device) for v in image_batch]
             loss = encoder.loss_info_nce(image_batch)
-            
+
             losses.append(loss.item())
-    
+
     return np.mean(losses)
 
 
@@ -194,19 +193,25 @@ def imscatter(x, y, image, zoom=0.5):
     return artists
 
 
-def plot_ae_outputs(encoder):
+def plot_ae_outputs(encoder, test_loader):
     plt.cla()
-    
-    img, _ = test_loader.next()
-    
+
+    try:
+        img, _ = test_loader.next()
+    except:
+        test_loader = iter(torch.utils.data.DataLoader(test_dataset, batch_size=visualization_batch_size, shuffle=True))
+        img, _ = test_loader.next()
+
     encoder.eval()
-    
+
     with torch.no_grad():
-        z_batch = encoder(img)
-    
-    img = einops.rearrange(img, "b c h w -> b h w c")
+        z_batch = encoder(img.to(device))
+
+    img = einops.rearrange(img, "b c h w -> b h w c").cpu().numpy()
+    z_batch = z_batch.cpu().numpy()
+
     imscatter(z_batch[:, 0], z_batch[:, 1], img)
-    
+
     plt.title('context encoding images')
     plt.pause(0.0001)
 
@@ -217,22 +222,22 @@ diz_loss = {"train_loss": [], "val_loss": []}
 plt.Figure(figsize=(16, 5))
 
 plt.subplot(211)
-plot_ae_outputs(encoder)
+plot_ae_outputs(encoder, test_loader)
 plt.pause(0.0001)
 
 for epoch in range(num_epoch):
     train_loss = train_epoch(encoder, train_loader, optimizer)
-    
+
     val_loss = test_epoch(encoder, valid_loader)
-    
+
     print(f"EPOCH {epoch + 1}/{num_epoch} train loss {train_loss}, val_loss {val_loss}")
-    
+
     diz_loss["train_loss"].append(train_loss)
     diz_loss["val_loss"].append(val_loss)
-    
+
     plt.subplot(211)
-    plot_ae_outputs(encoder)
-    
+    plot_ae_outputs(encoder, test_loader)
+
     plt.subplot(212)
     plt.cla()
     plt.plot(diz_loss['train_loss'], label='Train')
@@ -245,6 +250,9 @@ for epoch in range(num_epoch):
 
 # Plot losses
 plt.figure(figsize=(10, 8))
+plt.subplot(211)
+plot_ae_outputs(encoder, test_loader)
+plt.subplot(212)
 plt.semilogy(diz_loss['train_loss'], label='Train')
 plt.semilogy(diz_loss['val_loss'], label='Valid')
 plt.xlabel('Epoch')
@@ -252,4 +260,5 @@ plt.ylabel('Average Loss')
 # plt.grid()
 plt.legend()
 # plt.title('loss')
+
 plt.show()
