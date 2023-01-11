@@ -16,14 +16,14 @@ print("selected device: ", device)
 
 data_dir = "dataset"
 
-# train_dataset = torchvision.datasets.MNIST(data_dir, train=True, download=True)
-# test_dataset = torchvision.datasets.MNIST(data_dir, train=False, download=True)
-# in_channel = 1
+train_dataset = torchvision.datasets.MNIST(data_dir, train=True, download=True)
+test_dataset = torchvision.datasets.MNIST(data_dir, train=False, download=True)
+in_channel = 1
 
 
-train_dataset = torchvision.datasets.CIFAR10(data_dir, train=True, download=True)
-test_dataset = torchvision.datasets.CIFAR10(data_dir, train=False, download=True)
-in_channel = 3
+# train_dataset = torchvision.datasets.CIFAR10(data_dir, train=True, download=True)
+# test_dataset = torchvision.datasets.CIFAR10(data_dir, train=False, download=True)
+# in_channel = 3
 
 # print(test_dataset.targets)
 
@@ -249,7 +249,10 @@ for epoch in range(num_epoch):
     plt.pause(0.0001)
 
 # Plot losses
-plt.figure(figsize=(10, 8))
+visualization_batch_size = 2000
+test_loader = iter(torch.utils.data.DataLoader(test_dataset, batch_size=visualization_batch_size, shuffle=True))
+
+plt.figure(figsize=(16, 5))
 plt.subplot(211)
 plot_ae_outputs(encoder, test_loader)
 plt.subplot(212)
